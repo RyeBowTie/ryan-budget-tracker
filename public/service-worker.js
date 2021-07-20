@@ -10,9 +10,6 @@ const staticCacheFiles = [
     '/icons/icon-512x512.png',
 ];
 
-
-
-
 self.addEventListener("install", event => {
     event.waitUntil(
         caches
@@ -23,11 +20,8 @@ self.addEventListener("install", event => {
             })
             .then(() => self.skipWaiting())
             .catch(err => console.log(err))
-    );
-    
+    );   
 });
-
-
 
 self.addEventListener("activate", event => {
     console.log("activated")
@@ -45,5 +39,37 @@ self.addEventListener("activate", event => {
             })
         );
     self.clients.claim();
+});
+
+self.addEventListener('fetch', event => {
+    if (event.request.url.includes('/api/')) {
+        event.respondWith(
+            caches 
+                .open(dataCacheName)
+                .then(cache => {
+                    return fetch(event.request)
+                    .then(response => {
+                        if (response.status === 200) {
+                            cache.put(evt.request.url, response.clone());
+                        }
+                        return response
+                    })
+                    .catch (error => {
+                        return cache.match(event.request);
+                    })
+                })
+                .catch (error => console.log(error))
+            )
+        return
+    }
+
+
+    event.respondWith(
+        caches
+        .match(event.request)
+        .then(response => {
+            return response || fetch(event.request);
+        })
+    )
 })
 
