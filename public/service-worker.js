@@ -2,9 +2,9 @@ const staticCacheName = "static files";
 const dataCacheName = "data files"
 const staticCacheFiles = [
     '/',
-    'index.html',
-    'index.js',
-    'manifest.webmanifest',
+    '/index.html',
+    '/index.js',
+    '/manifest.webmanifest',
     'styles.css',
     '/icons/icon-192x192.png',
     '/icons/icon-512x512.png',
@@ -31,7 +31,7 @@ self.addEventListener("activate", event => {
             .then(keyList => {
                 return Promise.all(
                     keyList.map(key => {
-                        if (key !== staticCacheName && key !== dataCacheName) {
+                        if (key !== staticCacheName) {
                             return caches.delete(key);
                         }
                     })
@@ -41,35 +41,34 @@ self.addEventListener("activate", event => {
     self.clients.claim();
 });
 
-self.addEventListener('fetch', event => {
-    if (event.request.url.includes('/api/')) {
-        event.respondWith(
-            caches 
-                .open(dataCacheName)
-                .then(cache => {
-                    return fetch(event.request)
-                    .then(response => {
-                        if (response.status === 200) {
-                            cache.put(evt.request.url, response.clone());
-                        }
-                        return response
-                    })
-                    .catch (error => {
-                        return cache.match(event.request);
-                    })
-                })
-                .catch (error => console.log(error))
-            )
-        return
-    }
+self.addEventListener('fetch', evt => {
+ console.log(evt.request.url)
+  if (evt.request.url.includes("/api/")) {
+    evt.respondWith(
+      caches.open(dataCacheName).then(cache => {
+        return fetch(evt.request)
+          .then(response => {
+          
+            if (response.status === 200) {
+              cache.put(evt.request.url, response.clone());
+            }
 
+            return response;
+          })
+          .catch(err => {
+        
+            return cache.match(evt.request);
+          });
+      }).catch(err => console.log(err))
+    );
 
-    event.respondWith(
-        caches
-        .match(event.request)
-        .then(response => {
-            return response || fetch(event.request);
-        })
-    )
+    return;
+  }
+    
+  evt.respondWith(
+    caches.match(evt.request).then(function(response) {
+      return response || fetch(evt.request);
+    })
+  );
 })
 
