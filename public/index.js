@@ -10,7 +10,6 @@ fetch("/api/transaction")
   .then(data => {
     // save db data on global variable
     transactions = data;
-
     populateTotal();
     populateTable();
     populateChart();
@@ -149,7 +148,7 @@ function sendTransaction(isAdding) {
 function saveRecord (transactions) {
   console.log(transactions)
   const request = indexedDB.open('budgetOffline', dbVersion || 1);
-  
+  console.log(request)
   request.onupgradeneeded = ({ target }) => {
     const db = target.result
     const budgetStore = db.createObjectStore('budgetOffline', {autoIncrement: true});  
