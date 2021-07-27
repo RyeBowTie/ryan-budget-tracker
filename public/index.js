@@ -1,6 +1,60 @@
 let transactions = [];
 let myChart;
 let dbVersion;
+let db;
+
+const request = indexedDB.open('budgetOffline', dbVersion || 1);
+
+request.onupgradeneeded = (event) => {
+  // const { oldVersion } = event;
+  // const newVersion = event.newVersion || db.version;
+
+  db = event.target.result;
+
+  if (db.objectStoreNames.length === 0) {
+    db.createObjectStore('budgetOffline', {autoIncrement: true});
+  }
+};
+
+request.onerror = (event) => {
+  console.log(event.target.errorCode);
+};
+
+
+const checkDataBase = () => {
+  console.log('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
+  let transaction = db.transaction(['budgetOffline'], 'readwrite');
+  let budgetStore = transaction.objectStore('budgetOffline');
+  const allTransactions = budgetStore.getAll();
+
+  allTransactions.onsuccess = () => {
+    if (allTransactions.result.length > 0) {
+      fetch('api/transaction/bulk', {
+        method: 'POST',
+        body: JSON.stringify(allTransactions.result),
+        headers: {
+          Accept: 'application/json, text/plain, */*',
+          'Content-Type': 'application/json',
+        },
+      })
+      .then((response) => response.json())
+      .then((res) => {
+        if (res.length !== 0) {
+          transaction = db.transaction(['budgetOffline'], 'readwrite');
+          store = transaction.objectStore('budgetOffline');
+          store.clear();
+        }
+      })
+    }
+  }
+};
+
+request.onsuccess = (event) => {
+  db = event.target.result;
+  if (navigator.onLine) {
+    checkDataBase();
+  }
+}
 
 
 fetch("/api/transaction")
@@ -146,20 +200,11 @@ function sendTransaction(isAdding) {
 }
 
 function saveRecord (transactions) {
-  console.log(transactions)
-  const request = indexedDB.open('budgetOffline', dbVersion || 1);
-  console.log(request)
-  request.onupgradeneeded = ({ target }) => {
-    const db = target.result
-    const budgetStore = db.createObjectStore('budgetOffline', {autoIncrement: true});  
-  };
+  
+  let transaction = db.transaction(['budgetOffline'], 'readwrite');
+  let budgetStore = transaction.objectStore('budgetOffline');
+  budgetStore.add(transactions);
 
-  request.onsuccess= () => {
-    const db = request.result;
-    const transaction = db.transaction(['budgetOffline'], 'readwrite');
-    const budgetStore = transaction.objectStore('budgetOffline');
-    budgetStore.add(transactions);
-  }; 
 };
 document.querySelector("#add-btn").onclick = function() {
   sendTransaction(true);
